@@ -11,10 +11,10 @@ window.MONEYBOARD_CONFIG = {
   demoMode: false,
 
   // 실제 사용할 부부 이메일 2개
-  allowedEmails: [
-    '본인이메일@gmail.com',
-    '와이프이메일@gmail.com'
-  ],
+allowedEmails: [
+  'bgvj90@naver.com',
+  'sgersg@naver.com'
+],
 
   firebase: {
     apiKey: 'AIzaSyB5Kp97Lj2AKzUfGymD6wu4cs2HwpAdjus',
