@@ -53,6 +53,7 @@
     installments: [],
     recurring: [],
     plans: [],
+    contributions: [],
     unsubs: []
   };
 
@@ -64,6 +65,7 @@
       husbandName: '남편',
       wifeName: '아내',
       cardName: '공동 카드',
+      dataVersion: 3,
       updatedAt: Date.now()
     },
     expenses: [],
@@ -75,23 +77,23 @@
         monthlyAmount: 1200000,
         remainingMonths: 1,
         endDate: '',
-        memo: '카드 앱에서 할부별 월 납부액과 종료일을 확인한 뒤 개별 항목으로 나누세요.',
+        memo: '상세 내역은 확인되는 대로 수정하세요.',
         active: true,
         createdAt: Date.now()
       }
     ],
     recurring: [
-      {
-        id: 'initial_electricity',
-        name: '전기세 예상',
-        monthlyAmount: 120000,
-        dueDay: 20,
-        memo: '월 10~15만원 예상값 중 중간값으로 설정',
-        active: true,
-        createdAt: Date.now()
-      }
+      { id:'shared_water_purifier', name:'집 정수기', monthlyAmount:24900, dueDay:null, payer:'남편', paymentMethod:'남편 직접 납부', includeInCard:false, frequencyMonths:1, memo:'공동으로 사용하는 비용', active:true, createdAt:Date.now() },
+      { id:'shared_coupang_wow', name:'쿠팡 와우 멤버십', monthlyAmount:7890, dueDay:null, payer:'남편', paymentMethod:'남편 직접 납부', includeInCard:false, frequencyMonths:1, memo:'공동으로 사용하는 비용', active:true, createdAt:Date.now() },
+      { id:'shared_netflix', name:'넷플릭스', monthlyAmount:22000, dueDay:null, payer:'남편', paymentMethod:'남편 직접 납부', includeInCard:false, frequencyMonths:1, memo:'공동으로 사용하는 비용', active:true, createdAt:Date.now() },
+      { id:'shared_rent', name:'월세', monthlyAmount:190000, dueDay:null, payer:'남편', paymentMethod:'남편 직접 납부', includeInCard:false, frequencyMonths:1, memo:'공동 주거비', active:true, createdAt:Date.now() },
+      { id:'shared_water_bill', name:'수도세', monthlyAmount:30000, dueDay:23, payer:'공동통장', paymentMethod:'계좌 자동납부', includeInCard:false, frequencyMonths:2, anchorDate:'2026-07-23', memo:'2개월마다 약 3만원 · 2026년 7월 23일 납부 기준', active:true, createdAt:Date.now() },
+      { id:'initial_electricity', name:'전기세 예상', monthlyAmount:70000, dueDay:25, payer:'공동 카드', paymentMethod:'신용카드', includeInCard:true, frequencyMonths:1, variable:true, minAmount:30000, maxAmount:70000, memo:'겨울 약 3만원 · 여름 약 7만원', active:true, createdAt:Date.now() },
+      { id:'shared_gas', name:'가스비 예상', monthlyAmount:10000, dueDay:20, payer:'공동 카드', paymentMethod:'신용카드', includeInCard:true, frequencyMonths:1, variable:true, minAmount:10000, maxAmount:130000, memo:'여름 약 1만원 · 겨울 최대 12~13만원', active:true, createdAt:Date.now() },
+      { id:'shared_car_rental', name:'차량 장기렌트', monthlyAmount:467610, dueDay:15, payer:'남편', paymentMethod:'현금 납부', includeInCard:false, frequencyMonths:1, memo:'공동으로 사용하는 차량 비용', active:true, createdAt:Date.now() }
     ],
-    plans: []
+    plans: [],
+    contributions: []
   });
 
   class LocalRepository {
@@ -152,20 +154,40 @@
     async ensureSeed() {
       const settingsRef = this.base.collection('settings').doc('main');
       const snap = await settingsRef.get();
-      if (snap.exists) return;
       const seed = defaultData();
+      const current = snap.data() || {};
       const batch = this.db.batch();
-      batch.set(settingsRef, seed.settings);
-      seed.installments.forEach(item => batch.set(this.base.collection('installments').doc(item.id), item));
-      seed.recurring.forEach(item => batch.set(this.base.collection('recurring').doc(item.id), item));
+
+      batch.set(settingsRef, { ...seed.settings, ...current }, { merge: true });
+
+      if (Number(current.dataVersion || 0) < 3) {
+        seed.installments.forEach(item => batch.set(this.base.collection('installments').doc(item.id), item, { merge: true }));
+        seed.recurring.forEach(item => batch.set(this.base.collection('recurring').doc(item.id), item, { merge: true }));
+        batch.set(settingsRef, { dataVersion: 3 }, { merge: true });
+      }
+
       await batch.commit();
+
+      const now = new Date();
+      const cycleKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const contributionRef = this.base.collection('contributions').doc(cycleKey);
+      const contributionSnap = await contributionRef.get();
+      if (!contributionSnap.exists) {
+        await contributionRef.set({
+          cycleKey,
+          husbandCardPayment: 1000000,
+          wifeCardPayment: 0,
+          memo: '아내 카드값 납부액은 월별 실제 금액으로 수정하세요.',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
     }
     subscribe(onData) {
-      const cache = { settings: null, expenses: [], installments: [], recurring: [], plans: [] };
+      const cache = { settings: null, expenses: [], installments: [], recurring: [], plans: [], contributions: [] };
       const emit = () => onData(structuredClone(cache));
       const unsubs = [];
       unsubs.push(this.base.collection('settings').doc('main').onSnapshot(snap => { cache.settings = snap.data() || defaultData().settings; emit(); }));
-      ['expenses', 'installments', 'recurring', 'plans'].forEach(type => {
+      ['expenses', 'installments', 'recurring', 'plans', 'contributions'].forEach(type => {
         unsubs.push(this.base.collection(type).onSnapshot(snap => {
           cache[type] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           emit();
@@ -187,7 +209,7 @@
     async replaceAll(payload) {
       const batch = this.db.batch();
       batch.set(this.base.collection('settings').doc('main'), payload.settings || defaultData().settings);
-      for (const type of ['expenses', 'installments', 'recurring', 'plans']) {
+      for (const type of ['expenses', 'installments', 'recurring', 'plans', 'contributions']) {
         const old = await this.base.collection(type).get();
         old.docs.forEach(doc => batch.delete(doc.ref));
         (payload[type] || []).forEach(item => {
@@ -234,14 +256,55 @@
     return state.expenses.filter(item => item.date >= range.start && item.date <= range.end);
   }
 
+  function cycleKey(range = getCycleRange()) { return range.start.slice(0, 7); }
+
+  function paymentDate(range = getCycleRange()) {
+    const day = Math.min(31, Math.max(1, Number(state.settings?.paymentDay || 15)));
+    const date = new Date(range.endDate.getFullYear(), range.endDate.getMonth() + 1, day);
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  }
+
+  function recurringDue(item, range = getCycleRange()) {
+    if (item.active === false) return false;
+    const frequency = Math.max(1, Number(item.frequencyMonths || 1));
+    if (frequency === 1) return true;
+    if (!item.anchorDate) return true;
+    const anchor = new Date(`${item.anchorDate}T00:00:00`);
+    const current = range.startDate;
+    const diff = (current.getFullYear() - anchor.getFullYear()) * 12 + (current.getMonth() - anchor.getMonth());
+    return diff >= 0 && diff % frequency === 0;
+  }
+
   function activeInstallments() { return state.installments.filter(item => item.active !== false && Number(item.remainingMonths ?? 1) > 0); }
-  function activeRecurring() { return state.recurring.filter(item => item.active !== false); }
+  function activeRecurring() { return state.recurring.filter(item => recurringDue(item)); }
+  function cardRecurring() { return activeRecurring().filter(item => item.includeInCard !== false); }
+  function outsideCardRecurring() { return activeRecurring().filter(item => item.includeInCard === false); }
+
+  function currentContribution(range = getCycleRange()) {
+    const key = cycleKey(range);
+    return state.contributions.find(item => item.cycleKey === key || item.id === key) || {
+      id: key,
+      cycleKey: key,
+      husbandCardPayment: 1000000,
+      wifeCardPayment: 0,
+      memo: ''
+    };
+  }
+
+  function payerTotals(items) {
+    return items.reduce((acc, item) => {
+      const payer = item.payer || '미지정';
+      acc[payer] = (acc[payer] || 0) + Number(item.monthlyAmount || 0);
+      return acc;
+    }, {});
+  }
 
   function totals() {
     const expenses = cycleExpenses();
     const variable = expenses.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const installments = activeInstallments().reduce((sum, item) => sum + Number(item.monthlyAmount || 0), 0);
-    const recurring = activeRecurring().reduce((sum, item) => sum + Number(item.monthlyAmount || 0), 0);
+    const recurring = cardRecurring().reduce((sum, item) => sum + Number(item.monthlyAmount || 0), 0);
+    const outsideRecurring = outsideCardRecurring().reduce((sum, item) => sum + Number(item.monthlyAmount || 0), 0);
     const forecast = variable + installments + recurring;
     const target = Number(state.settings?.monthlyTarget || 0);
     const remaining = target - forecast;
@@ -251,7 +314,7 @@
       acc[group] = (acc[group] || 0) + Number(item.amount || 0);
       return acc;
     }, { common: 0, husband: 0, wife: 0, irregular: 0 });
-    return { expenses, variable, installments, recurring, forecast, target, remaining, breakdown };
+    return { expenses, variable, installments, recurring, outsideRecurring, forecast, target, remaining, breakdown };
   }
 
   function groupTag(group) {
@@ -265,6 +328,20 @@
   function renderHome() {
     const t = totals();
     const range = getCycleRange();
+    const contribution = currentContribution(range);
+    const outsideByPayer = payerTotals(outsideCardRecurring());
+    const husbandName = state.settings?.husbandName || '남편';
+    const wifeName = state.settings?.wifeName || '아내';
+    const husbandCard = Number(contribution.husbandCardPayment || 0);
+    const wifeCard = Number(contribution.wifeCardPayment || 0);
+    const cardPaid = husbandCard + wifeCard;
+    const cardGap = t.forecast - cardPaid;
+    const husbandOutside = Number(outsideByPayer[husbandName] || outsideByPayer['남편'] || 0);
+    const wifeOutside = Number(outsideByPayer[wifeName] || outsideByPayer['아내'] || 0);
+    const jointOutside = Number(outsideByPayer['공동통장'] || 0);
+    const husbandTotal = husbandCard + husbandOutside;
+    const wifeTotal = wifeCard + wifeOutside;
+    const totalShared = t.forecast + t.outsideRecurring;
     const ratio = t.target > 0 ? Math.min(120, Math.max(0, (t.forecast / t.target) * 100)) : 0;
     const progressClass = ratio >= 100 ? 'danger' : ratio >= 85 ? 'warning' : '';
     const status = t.remaining >= 0
@@ -286,9 +363,24 @@
 
       <section class="metric-grid">
         <article class="metric-card card"><div class="metric-label">기존 할부</div><div class="metric-value">${shortWon(t.installments)}</div><div class="metric-sub">${activeInstallments().length}개 항목</div></article>
-        <article class="metric-card card"><div class="metric-label">고정·자동결제</div><div class="metric-value">${shortWon(t.recurring)}</div><div class="metric-sub">${activeRecurring().length}개 항목</div></article>
+        <article class="metric-card card"><div class="metric-label">카드 고정비</div><div class="metric-value">${shortWon(t.recurring)}</div><div class="metric-sub">${cardRecurring().length}개 항목</div></article>
         <article class="metric-card card"><div class="metric-label">이번 주기 새 지출</div><div class="metric-value">${shortWon(t.variable)}</div><div class="metric-sub">${t.expenses.length}건 입력</div></article>
-        <article class="metric-card card"><div class="metric-label">남은 사용 가능액</div><div class="metric-value" style="color:${t.remaining < 0 ? 'var(--red)' : 'var(--green)'}">${shortWon(t.remaining)}</div><div class="metric-sub">할부·고정비 포함</div></article>
+        <article class="metric-card card"><div class="metric-label">카드 외 공동비용</div><div class="metric-value">${shortWon(t.outsideRecurring)}</div><div class="metric-sub">${outsideCardRecurring().length}개 항목</div></article>
+      </section>
+
+      <div class="section-head contribution-head"><div><h2>이번 달 납부 현황</h2><p>${range.start.slice(0,7)} 사용분 · ${paymentDate(range)} 결제</p></div><button class="text-btn" data-edit-contribution>금액 수정</button></div>
+      <section class="card contribution-card">
+        <div class="contribution-total"><span>공동비용 예상 합계</span><b>${won(totalShared)}</b></div>
+        <div class="contribution-grid">
+          <article><span>${safeText(husbandName)} 부담</span><b>${won(husbandTotal)}</b><small>카드 ${won(husbandCard)} + 카드 외 ${won(husbandOutside)}</small></article>
+          <article><span>${safeText(wifeName)} 부담</span><b>${won(wifeTotal)}</b><small>카드 ${wifeCard ? won(wifeCard) : '금액 미입력'} + 카드 외 ${won(wifeOutside)}</small></article>
+        </div>
+        ${jointOutside ? `<div class="joint-row"><span>공동통장 납부</span><b>${won(jointOutside)}</b></div>` : ''}
+        <div class="settlement-row ${cardGap > 0 ? 'warning' : cardGap < 0 ? 'over' : 'complete'}">
+          <span>카드값 납부 차이</span>
+          <b>${cardGap > 0 ? `${won(cardGap)} 미배정` : cardGap < 0 ? `${won(Math.abs(cardGap))} 초과 입력` : '납부액 일치'}</b>
+        </div>
+        <div class="use-summary"><span>개인 사용</span><b>${safeText(husbandName)} ${won(t.breakdown.husband)} · ${safeText(wifeName)} ${won(t.breakdown.wife)}</b></div>
       </section>
 
       <div class="section-head"><div><h2>빠른 지출 등록</h2><p>결제 직후 5초 안에 입력하세요.</p></div></div>
@@ -353,20 +445,27 @@
   }
 
   function recurringItemHtml(item) {
+    const dueText = item.dueDay ? `매월 ${Number(item.dueDay)}일` : '납부일 미설정';
+    const frequencyText = Number(item.frequencyMonths || 1) === 2 ? '2개월마다' : '매월';
+    const cardText = item.includeInCard === false ? '카드 외' : '카드 포함';
+    const variableText = item.variable ? ` · ${won(item.minAmount || 0)}~${won(item.maxAmount || 0)}` : '';
     return `<article class="list-item clickable" data-edit-recurring="${safeText(item.id)}">
       <div class="item-icon">🔁</div><div class="item-body"><div class="item-title"><strong>${safeText(item.name)}</strong><b>${won(item.monthlyAmount)}</b></div>
-      <div class="item-meta"><span>매월 ${Number(item.dueDay || 1)}일 예상</span>${item.active === false ? '<span class="tag over">중지</span>' : ''}</div></div>
+      <div class="item-meta"><span>${frequencyText} · ${dueText}</span><span>${safeText(item.payer || '납부자 미설정')}</span><span class="tag ${item.includeInCard === false ? 'irregular' : 'common'}">${cardText}</span>${variableText ? `<span>${variableText}</span>` : ''}${item.active === false ? '<span class="tag over">중지</span>' : ''}</div></div>
     </article>`;
   }
 
   function renderCommitments() {
     const isI = state.commitmentTab === 'installments';
-    const rows = isI ? [...state.installments].sort((a,b) => Number(b.monthlyAmount)-Number(a.monthlyAmount)) : [...state.recurring].sort((a,b) => Number(a.dueDay)-Number(b.dueDay));
-    const total = rows.filter(x => x.active !== false).reduce((s,x) => s + Number(x.monthlyAmount || 0),0);
+    const rows = isI ? [...state.installments].sort((a,b) => Number(b.monthlyAmount)-Number(a.monthlyAmount)) : [...state.recurring].sort((a,b) => Number(a.dueDay || 99)-Number(b.dueDay || 99));
+    const activeRows = rows.filter(x => x.active !== false && (isI || recurringDue(x)));
+    const total = activeRows.reduce((s,x) => s + Number(x.monthlyAmount || 0),0);
+    const cardTotal = isI ? total : activeRows.filter(x => x.includeInCard !== false).reduce((s,x) => s + Number(x.monthlyAmount || 0),0);
+    const outsideTotal = isI ? 0 : activeRows.filter(x => x.includeInCard === false).reduce((s,x) => s + Number(x.monthlyAmount || 0),0);
     return `
-      <div class="section-head"><div><h2>고정 부담 관리</h2><p>과거 할부와 매달 반복되는 비용을 나눠 봅니다.</p></div></div>
+      <div class="section-head"><div><h2>고정 부담 관리</h2><p>할부와 반복되는 공동비용을 한곳에서 관리합니다.</p></div></div>
       <div class="segmented"><button data-commitment-tab="installments" class="${isI?'active':''}">할부</button><button data-commitment-tab="recurring" class="${!isI?'active':''}">고정·자동결제</button></div>
-      <section class="card card-pad" style="margin-bottom:13px"><div class="metric-label">현재 월 합계</div><div class="metric-value">${won(total)}</div><div class="metric-sub">대시보드 예상 카드값에 자동 포함됩니다.</div></section>
+      <section class="card card-pad commitment-summary" style="margin-bottom:13px"><div><div class="metric-label">현재 주기 합계</div><div class="metric-value">${won(total)}</div></div>${!isI ? `<div><span>카드 포함 ${won(cardTotal)}</span><span>카드 외 ${won(outsideTotal)}</span></div>` : '<div class="metric-sub">카드값 예상에 자동 포함됩니다.</div>'}</section>
       <section class="list">
         ${rows.length ? rows.map(isI ? installmentItemHtml : recurringItemHtml).join('') : `<div class="empty"><span class="emoji">${isI?'🧾':'🔁'}</span>등록된 항목이 없습니다.</div>`}
       </section>
@@ -455,6 +554,7 @@
     $$('[data-edit-installment]').forEach(el => el.addEventListener('click', () => openInstallmentModal(state.installments.find(x => x.id === el.dataset.editInstallment))));
     $$('[data-edit-recurring]').forEach(el => el.addEventListener('click', () => openRecurringModal(state.recurring.find(x => x.id === el.dataset.editRecurring))));
     $$('[data-edit-plan]').forEach(el => el.addEventListener('click', () => openPlanModal(state.plans.find(x => x.id === el.dataset.editPlan))));
+    $('[data-edit-contribution]')?.addEventListener('click', openContributionModal);
     $$('[data-commitment-tab]').forEach(btn => btn.addEventListener('click', () => { state.commitmentTab = btn.dataset.commitmentTab; render(); }));
 
     const search = $('#expenseSearch');
@@ -549,17 +649,41 @@
   }
 
   function openRecurringModal(item = null) {
-    const x = item || { name:'', monthlyAmount:'', dueDay:1, memo:'', active:true };
+    const x = item || { name:'', monthlyAmount:'', dueDay:'', payer:state.settings?.husbandName || '남편', paymentMethod:'', includeInCard:true, frequencyMonths:1, anchorDate:'', variable:false, minAmount:'', maxAmount:'', memo:'', active:true };
     openModal(item ? '고정비 수정' : '고정비 등록', `<form id="recurringForm" class="form-grid">
       <input type="hidden" name="id" value="${safeText(x.id || '')}" />
       <label><span>항목명</span><input name="name" required value="${safeText(x.name || '')}" placeholder="예: 전기세 예상" /></label>
-      <div class="inline-fields"><label><span>월 예상금액</span><input name="monthlyAmount" type="number" min="0" step="1000" required value="${Number(x.monthlyAmount || 0) || ''}" /></label><label><span>예상 결제일</span><input name="dueDay" type="number" min="1" max="31" value="${Number(x.dueDay || 1)}" /></label></div>
+      <div class="inline-fields"><label><span>이번 예상금액</span><input name="monthlyAmount" type="number" min="0" step="100" required value="${Number(x.monthlyAmount || 0) || ''}" /></label><label><span>납부일</span><input name="dueDay" type="number" min="1" max="31" value="${Number(x.dueDay || 0) || ''}" placeholder="미정" /></label></div>
+      <div class="inline-fields"><label><span>납부자</span><select name="payer"><option ${x.payer===(state.settings?.husbandName||'남편')?'selected':''}>${safeText(state.settings?.husbandName||'남편')}</option><option ${x.payer===(state.settings?.wifeName||'아내')?'selected':''}>${safeText(state.settings?.wifeName||'아내')}</option><option ${x.payer==='공동통장'?'selected':''}>공동통장</option><option ${x.payer==='공동 카드'?'selected':''}>공동 카드</option></select></label><label><span>납부주기</span><select name="frequencyMonths"><option value="1" ${Number(x.frequencyMonths||1)===1?'selected':''}>매월</option><option value="2" ${Number(x.frequencyMonths||1)===2?'selected':''}>2개월마다</option></select></label></div>
+      <label><span>결제수단</span><input name="paymentMethod" value="${safeText(x.paymentMethod || '')}" placeholder="예: 신용카드, 계좌 자동납부" /></label>
+      <label><span>카드값 예상 반영</span><select name="includeInCard"><option value="true" ${x.includeInCard!==false?'selected':''}>카드값에 포함</option><option value="false" ${x.includeInCard===false?'selected':''}>카드 외 공동비용</option></select></label>
+      <label><span>2개월 주기 기준일</span><input name="anchorDate" type="date" value="${safeText(x.anchorDate || '')}" /></label>
+      <div class="inline-fields"><label><span>최소 예상금액</span><input name="minAmount" type="number" min="0" step="100" value="${Number(x.minAmount || 0) || ''}" /></label><label><span>최대 예상금액</span><input name="maxAmount" type="number" min="0" step="100" value="${Number(x.maxAmount || 0) || ''}" /></label></div>
       <label><span>상태</span><select name="active"><option value="true" ${x.active!==false?'selected':''}>사용 중</option><option value="false" ${x.active===false?'selected':''}>중지</option></select></label>
       <label><span>메모</span><textarea name="memo">${safeText(x.memo || '')}</textarea></label>
       <div class="form-actions ${item?'':'single'}">${item?'<button id="deleteRecurring" class="danger-btn" type="button">삭제</button>':''}<button class="primary-btn" type="submit">저장</button></div>
     </form>`);
-    $('#recurringForm').addEventListener('submit', async e => { e.preventDefault(); const fd = new FormData(e.currentTarget); await saveItem('recurring',{ id:fd.get('id')||undefined,name:fd.get('name'),monthlyAmount:Number(fd.get('monthlyAmount')),dueDay:Number(fd.get('dueDay')),memo:fd.get('memo'),active:fd.get('active')==='true',createdAt:Date.now() },'고정비를 저장했습니다.'); });
+    $('#recurringForm').addEventListener('submit', async e => { e.preventDefault(); const fd = new FormData(e.currentTarget); const minAmount=Number(fd.get('minAmount')||0), maxAmount=Number(fd.get('maxAmount')||0); await saveItem('recurring',{ id:fd.get('id')||undefined,name:fd.get('name'),monthlyAmount:Number(fd.get('monthlyAmount')),dueDay:Number(fd.get('dueDay')||0)||null,payer:fd.get('payer'),paymentMethod:fd.get('paymentMethod'),includeInCard:fd.get('includeInCard')==='true',frequencyMonths:Number(fd.get('frequencyMonths')||1),anchorDate:fd.get('anchorDate'),variable:Boolean(minAmount||maxAmount),minAmount,maxAmount,memo:fd.get('memo'),active:fd.get('active')==='true',createdAt:Date.now() },'고정비를 저장했습니다.'); });
     $('#deleteRecurring')?.addEventListener('click', () => removeItem('recurring', item.id, '고정비를 삭제했습니다.'));
+  }
+
+  function openContributionModal() {
+    const range = getCycleRange();
+    const x = currentContribution(range);
+    const t = totals();
+    const suggestedWife = Math.max(0, t.forecast - Number(x.husbandCardPayment || 0));
+    openModal('이번 달 납부금액', `<form id="contributionForm" class="form-grid">
+      <input type="hidden" name="id" value="${safeText(x.id || cycleKey(range))}" />
+      <input type="hidden" name="cycleKey" value="${safeText(cycleKey(range))}" />
+      <section class="modal-summary"><span>${range.start.slice(0,7)} 사용분 카드값 예상</span><b>${won(t.forecast)}</b><small>${paymentDate(range)} 결제 예정</small></section>
+      <label><span>${safeText(state.settings?.husbandName || '남편')} 카드값 납부액</span><input name="husbandCardPayment" type="number" min="0" step="10000" value="${Number(x.husbandCardPayment || 1000000)}" /></label>
+      <label><span>${safeText(state.settings?.wifeName || '아내')} 카드값 납부액</span><input name="wifeCardPayment" type="number" min="0" step="10000" value="${Number(x.wifeCardPayment || 0) || ''}" placeholder="이번 달 실제 납부액" /></label>
+      <button id="fillWifeRemainder" class="secondary-btn full" type="button">남은 카드값 ${won(suggestedWife)} 입력</button>
+      <label><span>메모</span><textarea name="memo" placeholder="이번 달 정산 관련 메모">${safeText(x.memo || '')}</textarea></label>
+      <div class="form-actions single"><button class="primary-btn" type="submit">납부금액 저장</button></div>
+    </form>`);
+    $('#fillWifeRemainder').addEventListener('click', () => { $('#contributionForm [name="wifeCardPayment"]').value = suggestedWife; });
+    $('#contributionForm').addEventListener('submit', async e => { e.preventDefault(); const fd = new FormData(e.currentTarget); await saveItem('contributions',{ id:fd.get('id'),cycleKey:fd.get('cycleKey'),husbandCardPayment:Number(fd.get('husbandCardPayment')||0),wifeCardPayment:Number(fd.get('wifeCardPayment')||0),memo:fd.get('memo'),createdAt:Date.now() },'납부금액을 저장했습니다.'); });
   }
 
   function openPlanModal(item = null) {
@@ -602,7 +726,7 @@
   }
 
   function exportJson() {
-    downloadFile(`moneyboard-backup-${todayString()}.json`, JSON.stringify({ settings:state.settings,expenses:state.expenses,installments:state.installments,recurring:state.recurring,plans:state.plans }, null, 2), 'application/json');
+    downloadFile(`moneyboard-backup-${todayString()}.json`, JSON.stringify({ settings:state.settings,expenses:state.expenses,installments:state.installments,recurring:state.recurring,plans:state.plans,contributions:state.contributions }, null, 2), 'application/json');
   }
 
   function exportCsv() {
@@ -642,6 +766,7 @@
     state.installments = data.installments || [];
     state.recurring = data.recurring || [];
     state.plans = data.plans || [];
+    state.contributions = data.contributions || [];
     state.loading = false;
     render();
   }

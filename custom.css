@@ -137,3 +137,139 @@
     padding-top: 24px;
   }
 }
+
+/* v1.3 공동비용 및 월별 납부 현황 */
+.contribution-head {
+  align-items: center;
+  margin-top: 22px;
+}
+
+.contribution-card {
+  overflow: hidden;
+  padding: 0;
+}
+
+.contribution-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 17px 18px;
+  background: linear-gradient(145deg, #293956, #405174);
+  color: white;
+}
+
+.contribution-total span {
+  font-size: .78rem;
+  color: #d7deeb;
+}
+
+.contribution-total b {
+  font-size: 1.08rem;
+}
+
+.contribution-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--line);
+}
+
+.contribution-grid article {
+  min-width: 0;
+  padding: 16px 14px;
+  background: white;
+}
+
+.contribution-grid article > span {
+  display: block;
+  color: var(--muted);
+  font-size: .73rem;
+  margin-bottom: 7px;
+}
+
+.contribution-grid article > b {
+  display: block;
+  color: var(--navy);
+  font-size: 1.02rem;
+  letter-spacing: -.02em;
+}
+
+.contribution-grid article > small {
+  display: block;
+  margin-top: 6px;
+  color: #9199a8;
+  font-size: .66rem;
+  line-height: 1.45;
+}
+
+.joint-row,
+.settlement-row,
+.use-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  border-top: 1px solid var(--line);
+  font-size: .76rem;
+}
+
+.joint-row span,
+.settlement-row span,
+.use-summary span {
+  color: var(--muted);
+}
+
+.settlement-row.warning b { color: var(--amber); }
+.settlement-row.over b { color: var(--red); }
+.settlement-row.complete b { color: var(--green); }
+.use-summary b { text-align: right; font-size: .73rem; }
+
+.commitment-summary {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.commitment-summary > div:last-child {
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: .72rem;
+  text-align: right;
+}
+
+.modal-summary {
+  display: grid;
+  gap: 6px;
+  padding: 15px 16px;
+  border-radius: 17px;
+  background: var(--soft);
+}
+
+.modal-summary span,
+.modal-summary small {
+  color: var(--muted);
+  font-size: .74rem;
+}
+
+.modal-summary b {
+  color: var(--navy);
+  font-size: 1.2rem;
+}
+
+@media (max-width: 420px) {
+  .contribution-grid article {
+    padding: 14px 12px;
+  }
+
+  .contribution-grid article > b {
+    font-size: .94rem;
+  }
+
+  .contribution-grid article > small {
+    font-size: .62rem;
+  }
+}
