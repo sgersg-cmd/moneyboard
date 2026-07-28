@@ -1,0 +1,15 @@
+{
+  "name": "우리집 머니보드",
+  "short_name": "머니보드",
+  "description": "부부 공동 카드생활비·할부 관리 대시보드",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef1f6",
+  "theme_color": "#24314d",
+  "lang": "ko-KR",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
