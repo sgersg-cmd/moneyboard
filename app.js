@@ -60,6 +60,7 @@
     settings: {
       monthlyTarget: 2500000,
       cycleStartDay: 1,
+      paymentDay: 15,
       husbandName: '남편',
       wifeName: '아내',
       cardName: '공동 카드',
@@ -399,8 +400,15 @@
       <form id="settingsForm" class="card settings-group">
         <h3>카드생활비 기준</h3>
         <label><span>목표 카드값</span><input name="monthlyTarget" type="number" min="0" step="10000" value="${Number(s.monthlyTarget || 0)}" /></label>
+        <div class="payment-day-setting">
+          <div class="payment-day-copy">
+            <p class="payment-day-label">카드 결제일</p>
+            <p class="payment-day-note">현재 매월 ${Number(s.paymentDay || 15)}일로 설정되어 있습니다.</p>
+          </div>
+          <label class="payment-day-control"><span>매월</span><div class="payment-day-input-wrap"><input name="paymentDay" type="number" min="1" max="31" value="${Number(s.paymentDay || 15)}" /><b>일</b></div></label>
+        </div>
         <label><span>결제주기 시작일</span><input name="cycleStartDay" type="number" min="1" max="28" value="${Number(s.cycleStartDay || 1)}" /></label>
-        <p class="helper">카드 앱의 이용기간 시작일을 1~28 사이 숫자로 입력합니다. 정확한 이용기간은 카드사 앱에서 확인하세요.</p>
+        <p class="helper">카드 결제일과 이용기간 시작일은 서로 다를 수 있습니다. 정확한 이용기간은 카드사 앱에서 확인하세요.</p>
         <div class="divider"></div>
         <h3>표시 이름</h3>
         <div class="inline-fields"><label><span>남편</span><input name="husbandName" value="${safeText(s.husbandName || '남편')}" /></label><label><span>아내</span><input name="wifeName" value="${safeText(s.wifeName || '아내')}" /></label></div>
@@ -590,7 +598,7 @@
 
   async function saveSettings(e) {
     e.preventDefault(); const fd = new FormData(e.currentTarget);
-    await saveItem('settings',{ monthlyTarget:Number(fd.get('monthlyTarget')),cycleStartDay:Number(fd.get('cycleStartDay')),husbandName:fd.get('husbandName'),wifeName:fd.get('wifeName'),cardName:fd.get('cardName') },'설정을 저장했습니다.');
+    await saveItem('settings',{ monthlyTarget:Number(fd.get('monthlyTarget')),paymentDay:Number(fd.get('paymentDay') || 15),cycleStartDay:Number(fd.get('cycleStartDay')),husbandName:fd.get('husbandName'),wifeName:fd.get('wifeName'),cardName:fd.get('cardName') },'설정을 저장했습니다.');
   }
 
   function exportJson() {

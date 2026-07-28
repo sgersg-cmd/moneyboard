@@ -33,14 +33,15 @@
   line-height: 1.45;
 }
 
-.payment-day-card {
+.payment-day-setting {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 14px;
-  padding: 18px;
-  background: linear-gradient(145deg, #ffffff, #f3f6fb);
+  padding: 16px;
+  border: 1px solid #e4e9f2;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #f8faff, #f1f5fb);
 }
 
 .payment-day-copy {
@@ -48,36 +49,47 @@
 }
 
 .payment-day-label {
-  margin: 0 0 7px;
-  color: var(--muted);
-  font-size: .76rem;
-  font-weight: 800;
-}
-
-.payment-day-value {
-  margin: 0;
+  margin: 0 0 6px;
   color: var(--navy);
-  font-size: 1.42rem;
-  font-weight: 900;
-  letter-spacing: -.035em;
+  font-size: .9rem;
+  font-weight: 850;
 }
 
 .payment-day-note {
-  margin: 6px 0 0;
+  margin: 0;
   color: var(--muted);
   font-size: .72rem;
   line-height: 1.45;
 }
 
-.payment-day-icon {
-  width: 50px;
-  height: 50px;
-  flex: 0 0 auto;
-  display: grid;
-  place-items: center;
-  border-radius: 17px;
-  background: var(--blue-soft);
-  font-size: 1.35rem;
+.payment-day-control {
+  width: 106px;
+  flex: 0 0 106px;
+  gap: 5px;
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.payment-day-input-wrap {
+  position: relative;
+}
+
+.payment-day-input-wrap input {
+  padding-right: 31px;
+  text-align: center;
+  font-size: 1.02rem;
+  font-weight: 900;
+  color: var(--navy);
+}
+
+.payment-day-input-wrap b {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: .78rem;
+  pointer-events: none;
 }
 
 .account-actions {
@@ -103,6 +115,16 @@
 
   .hero-card h2 {
     font-size: 1.82rem;
+  }
+
+  .payment-day-setting {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .payment-day-control {
+    width: 94px;
+    flex-basis: 94px;
   }
 }
 
