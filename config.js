@@ -1,24 +1,27 @@
 /**
  * 우리집 머니보드 설정
- *
- * 1) 우선 demoMode: true 상태로 화면과 기능을 확인하세요.
- * 2) Firebase 설정이 끝나면 firebase 값을 채우고 demoMode를 false로 바꾸세요.
- * 3) allowedEmails에는 실제 사용할 부부 이메일 2개만 입력하세요.
  */
 window.MONEYBOARD_CONFIG = {
   appName: '우리집 머니보드',
+
+  // Firestore에서 부부 데이터를 묶는 공간 이름
   householdId: 'our-home',
-  demoMode: true,
+
+  // Firebase 공동사용 모드
+  demoMode: false,
+
+  // 실제 사용할 부부 이메일 2개
   allowedEmails: [
-    'husband@example.com',
-    'wife@example.com'
+    '본인이메일@gmail.com',
+    '와이프이메일@gmail.com'
   ],
+
   firebase: {
-    apiKey: '',
-    authDomain: '',
-    projectId: '',
-    storageBucket: '',
-    messagingSenderId: '',
-    appId: ''
+    apiKey: 'AIzaSyB5Kp97Lj2AKzUfGymD6wu4cs2HwpAdjus',
+    authDomain: 'moneyboart-40746.firebaseapp.com',
+    projectId: 'moneyboart-40746',
+    storageBucket: 'moneyboart-40746.firebasestorage.app',
+    messagingSenderId: '678734932695',
+    appId: '1:678734932695:web:f526e92356304c3fb91e92'
   }
 };
