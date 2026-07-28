@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#24314d" />
-  <meta name="description" content="부부가 함께 쓰는 카드생활비·할부 관리 대시보드" />
+  <meta name="description" content="카드생활비·할부 관리 대시보드" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="머니보드" />
@@ -12,21 +12,21 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png" />
   <link rel="icon" href="icons/icon-192.png" />
   <link rel="stylesheet" href="styles.css" />
-  <title>우리집 머니보드</title>
+  <link rel="stylesheet" href="custom.css" />
+  <title>머니보드</title>
 </head>
 <body>
   <div id="loadingScreen" class="splash-screen">
     <div class="brand-mark">₩</div>
-    <h1>우리집 머니보드</h1>
+    <h1>머니보드</h1>
     <p>이번 달 돈의 흐름을 정리하는 중이에요.</p>
   </div>
 
   <main id="loginScreen" class="auth-screen hidden" aria-labelledby="loginTitle">
     <section class="auth-card">
       <div class="brand-mark small">₩</div>
-      <p class="eyebrow">COUPLE MONEY BOARD</p>
-      <h1 id="loginTitle">우리집 머니보드</h1>
-      <p class="muted">등록된 두 사람만 접속할 수 있습니다.</p>
+      <p class="eyebrow">MONEY BOARD</p>
+      <h1 id="loginTitle">머니보드</h1>
       <form id="loginForm" class="stack-lg">
         <label>
           <span>이메일</span>
@@ -45,7 +45,6 @@
   <div id="app" class="app-shell hidden">
     <header class="topbar">
       <div>
-        <p class="eyebrow">우리집 공동 재정</p>
         <h1 id="appTitle">머니보드</h1>
       </div>
       <button id="syncBadge" class="sync-badge" type="button" title="동기화 상태">
@@ -73,5 +72,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
+  <script src="custom.js"></script>
 </body>
 </html>

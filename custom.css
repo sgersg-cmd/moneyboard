@@ -1,0 +1,117 @@
+/* 머니보드 화면 정리 및 모바일 여백 보정 */
+.topbar {
+  min-height: 76px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0px));
+  padding-bottom: 17px;
+}
+
+.topbar h1 {
+  margin: 0;
+  font-size: 1.28rem;
+}
+
+.page-container {
+  padding-top: 22px;
+}
+
+.hero-card {
+  margin-top: 2px;
+}
+
+.page-container > .section-head:first-child {
+  align-items: flex-start;
+  margin: 8px 2px 18px;
+  padding-top: 4px;
+}
+
+.page-container > .section-head:first-child h2 {
+  font-size: 1.18rem;
+}
+
+.page-container > .section-head:first-child p {
+  margin-top: 6px;
+  line-height: 1.45;
+}
+
+.payment-day-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 18px;
+  background: linear-gradient(145deg, #ffffff, #f3f6fb);
+}
+
+.payment-day-copy {
+  min-width: 0;
+}
+
+.payment-day-label {
+  margin: 0 0 7px;
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 800;
+}
+
+.payment-day-value {
+  margin: 0;
+  color: var(--navy);
+  font-size: 1.42rem;
+  font-weight: 900;
+  letter-spacing: -.035em;
+}
+
+.payment-day-note {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+.payment-day-icon {
+  width: 50px;
+  height: 50px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  background: var(--blue-soft);
+  font-size: 1.35rem;
+}
+
+.account-actions {
+  margin-top: 14px;
+}
+
+.account-actions .danger-btn {
+  width: 100%;
+}
+
+@media (max-width: 420px) {
+  .page-container {
+    padding-top: 19px;
+  }
+
+  .hero-card {
+    padding: 21px 19px;
+  }
+
+  .hero-top {
+    gap: 9px;
+  }
+
+  .hero-card h2 {
+    font-size: 1.82rem;
+  }
+}
+
+@media (min-width: 700px) {
+  .topbar {
+    top: 24px;
+  }
+
+  .page-container {
+    padding-top: 24px;
+  }
+}

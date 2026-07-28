@@ -1,7 +1,7 @@
 {
-  "name": "우리집 머니보드",
+  "name": "머니보드",
   "short_name": "머니보드",
-  "description": "부부 공동 카드생활비·할부 관리 대시보드",
+  "description": "카드생활비·할부 관리 대시보드",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
